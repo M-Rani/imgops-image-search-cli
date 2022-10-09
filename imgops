@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# Ask user to select an area to screenshot with escrotum
+# Upload to 0x0.st then use link to then upload it to imgops
+image-screencap-then-upload() {
+    # Check for scrot or escrotum
+    # use whatever is checked last
+    scrot --help&>/dev/null && CAP=scrot
+    escrotum --help&>/dev/null && CAP=escrotum
+    convert --help&>/dev/null || {
+        printf "convert (from ImageMagick) was not found in \$PATH\n"
+        exit 1
+    }
+
+    (( ${#CAP} == 0 )) && {
+        printf "Neither scrot or escrotum was found in \$PATH\n"
+        exit 1
+    }
+
+    printf "Taking screenshot (select the region with the mouse)... "
+    $CAP -s /tmp/imgops-lookups.png || {
+        printf "screenshot failed!\ncon"
+        exit 1
+    }
+
+    # Decrease image quality for faster upload speeds
+    convert /tmp/imgops-lookups.png \
+        -resize 800x600^ -compress JPEG -quality 5 /tmp/imgops-lookups.png
+
+    LINK=$(curl -F"file=@/tmp/imgops-lookups.png" 0x0.st -fs) && {
+        xdg-open https://imgops.com/$LINK && rm /tmp/imgops-lookups.png
+    }
+}
+
+# Upload file directory from file selection
+# Only succeed if argument is given
+upload-directly() {
+    # Check for ImageMagick for identify
+    identify -help&>/dev/null || {
+        printf "identify (from ImageMagick) was not found in \$PATH\n"
+        exit 1
+    }
+
+    (( $# >= 1 )) && {
+        # Check if file given is an image file, video files
+        # timeout after 3 seconds
+        FILE_CHECK=`timeout 1 identify $1&>/dev/null` || {
+            printf "Invalid file format given!\n"
+            exit 1
+        }
+
+        printf "Uploading image \"$1\" to 0x0.st...\n"
+        LINK=$(curl -F"file=@$1" 0x0.st -fs) && {
+            xdg-open https://imgops.com/$LINK
+        }
+    } || {
+        printf "No file given to upload!\n"
+        exit 1
+    }
+}
+
+# Handle argument flags
+UPLOAD=0
+while (( $# >= 1 )); do
+    case $1 in
+        --upload|-u) UPLOAD=1;;
+        *) break;
+    esac;
+    shift
+done
+
+# If upload is specified take first argument to upload
+# otherwise use escrotum/scrot to screencap by default
+[[ $UPLOAD == 1 ]] && {
+    upload-directly $1
+} || {
+    image-screencap-then-upload
+}
