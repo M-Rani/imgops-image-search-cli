@@ -1,21 +1,35 @@
 #!/usr/bin/env bash
 
-# Ask user to select an area to screenshot with escrotum
-# Upload to 0x0.st then use link to then upload it to imgops
-image-screencap-then-upload() {
+check-for-scrot() {
     # Check for scrot or escrotum
     # use whatever is checked last
     scrot --help&>/dev/null && CAP=scrot
     escrotum --help&>/dev/null && CAP=escrotum
-    convert --help&>/dev/null || {
-        printf "convert (from ImageMagick) was not found in \$PATH\n"
-        exit 1
-    }
-
     (( ${#CAP} == 0 )) && {
-        printf "Neither scrot or escrotum was found in \$PATH\n"
+        printf "scrot/escrotum was found in \$PATH\n"
         exit 1
     }
+}
+
+check-for-convert() {
+    convert --help&>/dev/null || {
+        printf "convert was not found in \$PATH\n"
+        exit 1
+    }
+}
+
+check-for-identify() {
+    identify -help&>/dev/null || {
+        printf "identify was not found in \$PATH\n"
+        exit 1
+    }
+}
+
+# Ask user to select an area to screenshot with escrotum/scrot
+# Upload to 0x0.st then use link to then upload it to imgops
+image-screencap-then-upload() {
+    check-for-scrot
+    check-for-convert
 
     printf "Taking screenshot (select the region with the mouse)... "
     $CAP -s /tmp/imgops-lookups.png || {
@@ -23,27 +37,34 @@ image-screencap-then-upload() {
         exit 1
     }
 
+    # Notifications for application launcher use
     # Decrease image quality for faster upload speeds
-    convert /tmp/imgops-lookups.png \
-        -resize 800x600^ -compress JPEG -quality 5 /tmp/imgops-lookups.png
+    check-for-image-magick
+    notify-send --appname=imgops --replace=6969 "imgops" "Converting image\!" && \
+        convert /tmp/imgops-lookups.png -resize 800x600^ -compress JPEG -quality 5 /tmp/imgops-lookups.png || {
+            notify-send --appname=imgops --replace=6969 "imgops" "Failed to convert image\!"
+        }
 
-    LINK=$(curl -F"file=@/tmp/imgops-lookups.png" 0x0.st -fs) && {
-        xdg-open https://imgops.com/$LINK && rm /tmp/imgops-lookups.png
-    }
+    # upload image to 0x0.st and then use url to file for imgops
+    notify-send --appname=imgops --replace=6969 "imgops" "Uploading image to 0x0.st..." && \
+        LINK=$(curl -F"file=@/tmp/imgops-lookups.png" 0x0.st -fs) && {
+            xdg-open https://imgops.com/$LINK && {
+                notify-send --appname=imgops --replace=6969 "imgops" "Opening imgops results in default browser\!"
+                rm /tmp/imgops-lookups.png
+            }
+        } || {
+            notify-send --appname=imgops --replace=6969 "imgops" "Failed to upload image\!"
+        }
 }
 
 # Upload file directory from file selection
 # Only succeed if argument is given
 upload-directly() {
-    # Check for ImageMagick for identify
-    identify -help&>/dev/null || {
-        printf "identify (from ImageMagick) was not found in \$PATH\n"
-        exit 1
-    }
+    check-for-identify
 
     (( $# >= 1 )) && {
         # Check if file given is an image file, video files
-        # timeout after 3 seconds
+        # timeout after 1 second
         FILE_CHECK=`timeout 1 identify $1&>/dev/null` || {
             printf "Invalid file format given!\n"
             exit 1
