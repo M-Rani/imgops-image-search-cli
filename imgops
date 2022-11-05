@@ -40,20 +40,20 @@ image-screencap-then-upload() {
     # Notifications for application launcher use
     # Decrease image quality for faster upload speeds
     check-for-image-magick
-    notify-send --appname=imgops --replace=6969 "imgops" "Converting image\!" && \
+    dunstify --appname=imgops --replace=6969 "imgops" "Converting image\!" && \
         convert /tmp/imgops-lookups.png -resize 800x600^ -compress JPEG -quality 5 /tmp/imgops-lookups.png || {
-            notify-send --appname=imgops --replace=6969 "imgops" "Failed to convert image\!"
+            dunstify --appname=imgops --replace=6969 "imgops" "Failed to convert image\!"
         }
 
     # upload image to 0x0.st and then use url to file for imgops
-    notify-send --appname=imgops --replace=6969 "imgops" "Uploading image to 0x0.st..." && \
+    dunstify --appname=imgops --replace=6969 "imgops" "Uploading image to 0x0.st..." && \
         LINK=$(curl -F"file=@/tmp/imgops-lookups.png" 0x0.st -fs) && {
             xdg-open https://imgops.com/$LINK && {
-                notify-send --appname=imgops --replace=6969 "imgops" "Opening imgops results in default browser\!"
+                dunstify --appname=imgops --replace=6969 "imgops" "Opening imgops results in default browser\!"
                 rm /tmp/imgops-lookups.png
             }
         } || {
-            notify-send --appname=imgops --replace=6969 "imgops" "Failed to upload image\!"
+            dunstify --appname=imgops --replace=6969 "imgops" "Failed to upload image\!"
         }
 }
 
