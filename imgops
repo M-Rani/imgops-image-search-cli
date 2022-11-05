@@ -29,7 +29,6 @@ check-for-identify() {
 # Upload to 0x0.st then use link to then upload it to imgops
 image-screencap-then-upload() {
     check-for-scrot
-    check-for-convert
 
     printf "Taking screenshot (select the region with the mouse)... "
     $CAP -s /tmp/imgops-lookups.png || {
@@ -39,7 +38,7 @@ image-screencap-then-upload() {
 
     # Notifications for application launcher use
     # Decrease image quality for faster upload speeds
-    check-for-image-magick
+    check-for-convert
     dunstify --appname=imgops --replace=6969 "imgops" "Converting image\!" && \
         convert /tmp/imgops-lookups.png -resize 800x600^ -compress JPEG -quality 5 /tmp/imgops-lookups.png || {
             dunstify --appname=imgops --replace=6969 "imgops" "Failed to convert image\!"
